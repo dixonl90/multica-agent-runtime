@@ -1,24 +1,21 @@
 #!/bin/bash
 set -e
 
-# Entrypoint for the dev image.
-#   - With MULTICA_TOKEN:    authenticates and starts the multica agent runtime daemon.
+# Entrypoint for the multica connected-agent runtime.
+#   - With MULTICA_TOKEN:    authenticates and starts the multica daemon.
 #   - Without MULTICA_TOKEN: drops to an interactive shell (use as a dev container).
 #
-# Optional env vars:
-#   MULTICA_TOKEN          Personal access token (mul_... or mcn_...) — required for daemon mode
-#   MULTICA_SERVER_URL     Multica API server URL (default: https://api.multica.ai)
-#   MULTICA_APP_URL        Web app URL (default: https://multica.ai)
-#   MULTICA_WORKSPACE_ID   Workspace to claim tasks from (or set via --workspace-id at runtime)
-#   MULTICA_AGENT_RUNTIME_NAME   Display name for this runtime
-#   MULTICA_DAEMON_DEVICE_NAME   Human-readable device name
-#   STITCH_API_KEY         If set, registers the Stitch MCP server at startup (key stays out of the image)
-#   GITHUB_TOKEN           If set, configures git HTTPS auth so the daemon can clone private repos
+# Env vars (see .env.example for the full list):
+#   MULTICA_TOKEN              Personal access token (mul_... or mcn_...) — required for daemon mode
+#   MULTICA_SERVER_URL         Multica API server URL (default: https://api.multica.ai)
+#   MULTICA_APP_URL            Web app URL (default: https://multica.ai)
+#   MULTICA_WORKSPACE_ID       Workspace to claim tasks from (or pass --workspace-id at runtime)
+#   MULTICA_AGENT_RUNTIME_NAME Display name for this runtime
+#   MULTICA_DAEMON_ID          Stable daemon id (defaults to the runtime name)
+#   GITHUB_TOKEN               If set, configures git HTTPS auth + gh so agents can clone/push private repos
+#   SETUP_CMD                  Optional one-time bootstrap run before the daemon starts (toolchain, MCPs, ...)
 #
-# .env file support:
-#   Mount a .env file at /app/.env and it will be sourced automatically.
-#   docker run -v $(pwd)/.env:/app/.env ... florence-dev
-#   Or use Docker's native --env-file: docker run --env-file .env ... florence-dev
+# .env support: a file at /app/.env, /.env, or /run/secrets/multica.env is sourced automatically.
 
 for env_file in /app/.env /.env /run/secrets/multica.env; do
   if [ -f "$env_file" ]; then
@@ -26,11 +23,11 @@ for env_file in /app/.env /.env /run/secrets/multica.env; do
   fi
 done
 
-# Configure git + gh auth so the multica daemon (and agents) can clone/push
-# private repos over HTTPS and open/merge PRs. Without this the daemon fails with
+# Configure git + gh auth so the daemon (and agents) can clone/push private repos
+# over HTTPS and open/merge PRs. Without this the daemon fails with
 # "could not read Username for 'https://github.com'" (terminal prompts disabled).
-#   GITHUB_TOKEN  PAT with: Contents RW, Pull requests RW, Metadata R
-#                 (+ Workflows RW if editing .github/workflows, + Checks R to gate merges)
+#   GITHUB_TOKEN  classic PAT scope `repo` (+ `workflow` if editing .github/workflows),
+#                 or a fine-grained PAT with Contents RW, Pull requests RW, Metadata R.
 if [ -n "$GITHUB_TOKEN" ]; then
   git config --global credential.helper store
   printf 'https://x-access-token:%s@github.com\n' "$GITHUB_TOKEN" > "$HOME/.git-credentials"
@@ -39,14 +36,13 @@ if [ -n "$GITHUB_TOKEN" ]; then
   export GH_TOKEN="${GH_TOKEN:-$GITHUB_TOKEN}"
 fi
 
-# Register the Stitch MCP server at runtime so the API key is never baked into
-# the image. No-op (with a warning) if the key is absent or registration fails.
-if [ -n "$STITCH_API_KEY" ]; then
-  add-mcp https://stitch.googleapis.com/mcp \
-    --header "X-Goog-Api-Key: $STITCH_API_KEY" \
-    --name stitch \
-    -a claude-code -a codex -a opencode -a gemini-cli -a antigravity \
-    -g -y || echo "WARN: failed to register Stitch MCP server" >&2
+# Optional one-time bootstrap. Use to provision a project toolchain or register
+# MCP servers without baking them into the image. Examples:
+#   SETUP_CMD="mise install"
+#   SETUP_CMD="add-mcp https://example.com/mcp --name foo -a claude-code -a codex -g -y"
+if [ -n "$SETUP_CMD" ]; then
+  echo "Running SETUP_CMD..." >&2
+  bash -lc "$SETUP_CMD"
 fi
 
 SERVER_URL="${MULTICA_SERVER_URL:-https://api.multica.ai}"
@@ -57,12 +53,12 @@ APP_URL="${MULTICA_APP_URL:-https://multica.ai}"
 # id on every `docker run`, so the daemon would register a NEW runtime each time.
 # Default it to a stable value so reruns reuse the same runtime. Override with
 # -e MULTICA_DAEMON_ID=... (or run distinct runtimes with distinct ids).
-export MULTICA_DAEMON_ID="${MULTICA_DAEMON_ID:-${MULTICA_AGENT_RUNTIME_NAME:-florence-dev}}"
+export MULTICA_DAEMON_ID="${MULTICA_DAEMON_ID:-${MULTICA_AGENT_RUNTIME_NAME:-multica-agent-runtime}}"
 
 # No token -> interactive dev shell (or whatever command was passed to `docker run`).
 if [ -z "$MULTICA_TOKEN" ]; then
   echo "No MULTICA_TOKEN set — starting an interactive shell instead of the daemon." >&2
-  echo "For headless daemon mode: docker run -e MULTICA_TOKEN=mul_... florence-dev" >&2
+  echo "For headless daemon mode: docker run -e MULTICA_TOKEN=mul_... multica-agent-runtime" >&2
   echo "Generate a token at ${APP_URL}/settings/tokens" >&2
   exec "${@:-bash}"
 fi

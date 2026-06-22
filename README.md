@@ -1,43 +1,89 @@
 # multica-agent-runtime
 
-Dockerised [Multica.ai](https://multica.ai) connected-agent runtime for the
-Florence Tracker project. Bundles the toolchain (Flutter / Dart / Supabase CLI
-via `mise`) plus the agent CLIs (Claude Code, Codex, OpenCode, Antigravity) and
-the `multica` daemon, so a host can register as a runtime and execute squad tasks.
+A generic, Dockerised runtime for [Multica.ai](https://multica.ai) **connected
+agents**. Run it on any host (laptop, server, VM, CI) to register that machine as
+a Multica agent runtime and let your squad's agents execute tasks there.
 
-Extracted from [`dixonl90/go-with-the-flo`](https://github.com/dixonl90/go-with-the-flo).
+Stack-agnostic by design: it ships the agent CLIs and the `multica` daemon, but
+**no language toolchain** — your projects bring their own (see
+[Provisioning a toolchain](#provisioning-a-toolchain)).
+
+## What's inside
+
+- **Agent CLIs**: Claude Code, OpenAI Codex, OpenCode, Antigravity (`agy`)
+- **`multica`** daemon + CLI
+- **git** + **GitHub CLI** (`gh`) with token-based HTTPS auth wired up
+- **[mise](https://mise.jdx.dev/)** — language-agnostic version manager for per-project toolchains
+- **add-mcp** — register MCP servers with the agent CLIs
+
+Base image `node:20-bookworm` (pinned by digest). Runs as a non-root `agent` user.
 
 ## Quickstart
 
 ```bash
-cp .env.example .env          # fill in MULTICA_TOKEN, GITHUB_TOKEN, etc.
+cp .env.example .env          # fill in MULTICA_TOKEN (+ GITHUB_TOKEN for private repos)
 docker compose up -d --build  # build + start the daemon
 docker compose logs -f        # follow daemon output
 docker compose down           # stop (named volumes persist)
 ```
 
-Without `MULTICA_TOKEN` the entrypoint drops to an interactive shell instead of
-starting the daemon.
+Get a token at https://multica.ai/settings/tokens. Without `MULTICA_TOKEN` the
+container drops to an interactive shell instead of starting the daemon — handy as
+a plain dev container:
 
-## Files
+```bash
+docker run -it --rm multica-agent-runtime
+```
 
-| File | Purpose |
-|------|---------|
-| `Dockerfile` | Dev image: Flutter + Dart + Supabase CLI + mise + agent CLIs + multica |
-| `docker-compose.yml` | Daemon service, named volumes for state + workspaces |
-| `entrypoint.sh` | Auth (multica + git/gh), optional MCP registration, daemon start |
-| `opencode.json` | OpenCode provider config (DeepSeek) |
-| `.env.example` | Required/optional env vars (copy to `.env`) |
+## Configuration
 
-## ⚠️ Not yet standalone
+All config is via environment variables — see [`.env.example`](.env.example).
+Key ones:
 
-This is a verbatim copy of `agent-runtime/` from the app repo. The build is still
-coupled to the Florence Flutter project:
+| Var | Purpose |
+|-----|---------|
+| `MULTICA_TOKEN` | PAT for daemon mode (required to run as a runtime) |
+| `MULTICA_WORKSPACE_ID` | Workspace to claim tasks from |
+| `MULTICA_AGENT_RUNTIME_NAME` | Display name + default stable daemon id |
+| `GITHUB_TOKEN` | git HTTPS + `gh` auth so agents clone/push private repos and open PRs |
+| `SETUP_CMD` | Optional one-time bootstrap run before the daemon starts |
+| `DEEPSEEK_API_KEY` | Optional — enables the DeepSeek provider in `opencode.json` |
 
-- `docker-compose.yml` uses `context: ..` (expects the app repo as the parent dir).
-- The Dockerfile references `agent-runtime/<file>` paths and `COPY`s `mise.toml`,
-  `pubspec.yaml`, and `lib/`, then runs `flutter pub get` + `build_runner`.
+Persistence: two named volumes keep daemon identity/auth (`/home/agent/.multica`)
+and the repo cache + agent workdirs (`/home/agent/multica_workspaces`) across
+reruns, so the daemon reuses the same runtime and resumes tasks.
 
-To build from this repo on its own, follow-up work is needed: decouple the image
-from a specific app (mount the project at runtime, or parameterise the source),
-and update the `context` / `COPY` paths. Tracked as the next step.
+## Provisioning a toolchain
+
+The image has no Flutter/Node-app/Python/etc. toolchain baked in. The daemon
+clones each task's repo into `multica_workspaces`, so per-project toolchains are
+best handled one of three ways:
+
+1. **Let agents self-provision** — if a repo has a [`mise.toml`](https://mise.jdx.dev/),
+   an agent can run `mise install` as part of its task. `mise` is already on PATH.
+2. **`SETUP_CMD`** — a one-time bootstrap before the daemon starts, e.g.
+   `SETUP_CMD="mise install"` against a mounted project, or to register MCP servers:
+   `SETUP_CMD="add-mcp <url> --name foo -a claude-code -a codex -g -y"`.
+3. **Extend the image** — `FROM multica-agent-runtime` and add your SDKs/CLIs.
+
+## Working on a local project
+
+By default the daemon clones repos itself. To instead have agents work on a local
+checkout in place, mount it (uncomment in `docker-compose.yml`):
+
+```yaml
+    volumes:
+      - ./your-project:/app
+```
+
+## Security
+
+- Tokens are passed via env / `.env` only — none are baked into the image.
+- `.env` is git-ignored; only `.env.example` is committed.
+- The image runs as a non-root user.
+- `GITHUB_TOKEN` grants the daemon repo access — scope it to the minimum
+  (`repo`, or a fine-grained PAT limited to the repos you want agents to touch).
+
+## License
+
+[MIT](LICENSE).

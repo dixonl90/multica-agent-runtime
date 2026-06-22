@@ -1,34 +1,32 @@
-# Dev / multica agent runtime.
+# Multica.ai connected-agent runtime.
 #
-#   cd agent-runtime && cp .env.example .env   # then fill in tokens
+#   cp .env.example .env                       # then fill in tokens
 #   docker compose up -d --build               # build + start the daemon
 #   docker compose logs -f                     # follow daemon output
 #   docker compose down                        # stop (named volumes persist)
-#   docker compose run --rm florence-dev bash  # one-off interactive shell
+#   docker compose run --rm runtime bash       # one-off interactive shell
 #
-# Compose targets daemon mode, so MULTICA_TOKEN must be set in .env (without it
-# the entrypoint just opens a shell and the container exits).
+# Daemon mode needs MULTICA_TOKEN in .env; without it the entrypoint just opens a
+# shell and the container exits.
 
 services:
-  florence-dev:
-    build:
-      # Context is the repo root — the Dockerfile copies pubspec/mise.toml/source.
-      context: ..
-      dockerfile: agent-runtime/Dockerfile
-    image: florence-dev
-    # No container_name — let Compose name it project-scoped (florence-agent-*)
-    # so it never collides with a manually-run container holding a fixed name.
+  runtime:
+    build: .
+    image: multica-agent-runtime
+    # No container_name — let Compose name it project-scoped so it never collides
+    # with a manually-run container holding a fixed name.
     env_file:
       - .env
     volumes:
-      # Live project source — edits on the host are visible in the container.
-      - ../:/app
       # Daemon identity + auth + config: persist so reruns reuse the same runtime
       # and skip re-login.
-      - multica-state:/home/florence/.multica
+      - multica-state:/home/agent/.multica
       # Repo cache + agent workdirs: persist to skip re-clone and resume tasks.
       # Can grow over time — drop this line if you want a clean slate each run.
-      - multica-workspaces:/home/florence/multica_workspaces
+      - multica-workspaces:/home/agent/multica_workspaces
+      # Optional: mount a local project for agents to work on in place (otherwise
+      # the daemon clones repos itself into multica_workspaces per task).
+      # - ./your-project:/app
     restart: unless-stopped
 
 volumes:
