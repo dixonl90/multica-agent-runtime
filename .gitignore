@@ -1,0 +1,7 @@
+# Secrets — only .env.example belongs in git
+.env
+*.env
+!.env.example
+
+# OS / editor cruft
+.DS_Store
