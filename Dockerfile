@@ -76,10 +76,10 @@ ENV HOME=/home/agent
 # Postinstall scripts run as root and create config/cache dirs; reclaim
 # ownership afterwards so the non-root agent user can write them.
 RUN npm install -g \
-    @anthropic-ai/claude-code@2.1.179 \
-    @openai/codex@0.140.0 \
-    opencode-ai@1.17.7 \
-    add-mcp@1.10.4 \
+    @anthropic-ai/claude-code@2.1.197 \
+    @openai/codex@0.142.4 \
+    opencode-ai@1.17.12 \
+    add-mcp@1.13.0 \
     && chown -R agent:agent /home/agent
 
 # ── Everything below runs as the non-root agent user ──────────────────────
