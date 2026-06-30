@@ -96,6 +96,64 @@ checkout in place, mount it (uncomment in `docker-compose.yml`):
 - `GITHUB_TOKEN` grants the daemon repo access — scope it to the minimum
   (`repo`, or a fine-grained PAT limited to the repos you want agents to touch).
 
+## Troubleshooting
+
+### WebSocket "bad handshake" log messages
+
+If the daemon repeatedly logs:
+
+```
+task wakeup websocket unavailable; polling fallback remains active error="websocket: bad handshake"
+```
+
+the daemon's real-time task wakeup is failing and it has fallen back to HTTP polling. Tasks still run correctly — polling is a fully functional fallback — but the error points to a fixable configuration gap on self-hosted deployments.
+
+**Root cause.** The daemon opens a WebSocket connection to `<MULTICA_SERVER_URL>/api/daemon/ws` for push-based task notifications. Self-hosted reverse proxies configured from the [official guide](https://github.com/multica-ai/multica/blob/main/SELF_HOSTING_ADVANCED.md#reverse-proxy) add WebSocket `Upgrade`/`Connection` headers only for the `/ws` path (the browser real-time connection). Requests to `/api/daemon/ws` hit the plain HTTP `location /` block, the proxy returns a non-101 response, and the WebSocket client reports "bad handshake".
+
+**Fix for nginx** — either add WebSocket headers to the main backend location block, or add a specific block for the daemon path:
+
+```nginx
+# Option A — enable WebSocket forwarding for all backend paths (simplest)
+server {
+    server_name api.example.com;
+    # ... TLS config ...
+
+    location / {
+        proxy_pass http://localhost:8080;
+        proxy_http_version 1.1;
+        proxy_set_header Upgrade $http_upgrade;
+        proxy_set_header Connection "upgrade";
+        proxy_set_header Host $host;
+        proxy_set_header X-Real-IP $remote_addr;
+        proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;
+        proxy_set_header X-Forwarded-Proto $scheme;
+    }
+}
+
+# Option B — add only the daemon path alongside the existing /ws block
+location /api/daemon/ws {
+    proxy_pass http://localhost:8080;
+    proxy_http_version 1.1;
+    proxy_set_header Upgrade $http_upgrade;
+    proxy_set_header Connection "upgrade";
+    proxy_set_header Host $host;
+    proxy_read_timeout 86400;
+}
+```
+
+**Fix for Caddy (single-domain layout)** — add `/api/daemon/ws` to the WebSocket matcher so it is routed to the backend instead of the frontend:
+
+```
+@multica_ws path /ws /ws/* /api/daemon/ws /api/daemon/ws/*
+handle @multica_ws {
+    reverse_proxy localhost:8080 {
+        flush_interval -1
+    }
+}
+```
+
+**Multica cloud users** (`api.multica.ai`): the cloud backend handles `/api/daemon/ws` correctly. If you still see the error, a local firewall or corporate proxy is likely stripping the HTTP `Upgrade` header before it reaches the server — check whether outbound WebSocket (port 443 with `Upgrade: websocket`) is allowed on your network.
+
 ## License
 
 [MIT](LICENSE).
