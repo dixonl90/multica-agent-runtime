@@ -5,3 +5,6 @@
 
 # OS / editor cruft
 .DS_Store
+
+# oh-my-claudecode local session state (never belongs in the repo)
+.omc/
