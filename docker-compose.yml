@@ -24,6 +24,9 @@ services:
       # Repo cache + agent workdirs: persist to skip re-clone and resume tasks.
       # Can grow over time — drop this line if you want a clean slate each run.
       - multica-workspaces:/home/agent/multica_workspaces
+      # Agent CLI logins/onboarding (Claude, Codex, OpenCode, Antigravity): persist
+      # so interactive logins survive recreation. Also a home for other agent config.
+      - agent-config:/home/agent/.agent-config
       # Optional: mount a local project for agents to work on in place (otherwise
       # the daemon clones repos itself into multica_workspaces per task).
       # - ./your-project:/app
@@ -32,3 +35,4 @@ services:
 volumes:
   multica-state:
   multica-workspaces:
+  agent-config:
