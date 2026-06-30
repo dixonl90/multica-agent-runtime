@@ -15,6 +15,7 @@ set -e
 #   GITHUB_TOKEN               If set, configures git HTTPS auth + gh so agents can clone/push private repos
 #   GITLAB_TOKEN / GITLAB_HOST GitLab auth for git HTTPS + glab (host defaults to gitlab.com)
 #   GITEA_TOKEN / GITEA_HOST   Gitea/Forgejo auth for git HTTPS + tea (host required, no default)
+#   AGENT_CONFIG_DIR           Shared dir for agent CLI logins/onboarding (default ~/.agent-config; mount a volume to persist)
 #   SETUP_CMD                  Optional one-time bootstrap run before the daemon starts (toolchain, MCPs, ...)
 #
 # .env support: a file at /app/.env, /.env, or /run/secrets/multica.env is sourced automatically.
@@ -52,6 +53,31 @@ add_git_cred "${GITLAB_HOST:-gitlab.com}" "oauth2"                "$GITLAB_TOKEN
 add_git_cred "$GITEA_HOST"                "${GITEA_USER:-oauth2}" "$GITEA_TOKEN"
 
 if [ "$have_git_creds" = 1 ]; then
+# Shared config dir for the agent CLIs. Mount a volume at $AGENT_CONFIG_DIR (see
+# docker-compose.yml) to persist each agent's login/onboarding across container
+# recreation. Claude and Codex are pointed here by env (set in the Dockerfile);
+# OpenCode and Antigravity have no relocation env var, so symlink their fixed
+# paths into the same dir. Headless token auth (see .env.example) needs none of
+# this; it only matters for interactive logins.
+AGENT_CONFIG_DIR="${AGENT_CONFIG_DIR:-$HOME/.agent-config}"
+mkdir -p "$AGENT_CONFIG_DIR/claude" "$AGENT_CONFIG_DIR/codex" \
+         "$AGENT_CONFIG_DIR/opencode" "$AGENT_CONFIG_DIR/gemini" \
+         "$HOME/.local/share"
+# OpenCode keeps auth/data under ~/.local/share/opencode; Antigravity under
+# ~/.gemini. Replace each fixed path with a symlink into the shared dir (skip if
+# it is already the symlink, to stay idempotent across reruns).
+for link in ".local/share/opencode:opencode" ".gemini:gemini"; do
+  path="$HOME/${link%%:*}"; target="$AGENT_CONFIG_DIR/${link##*:}"
+  [ -L "$path" ] || rm -rf "$path"
+  ln -sfn "$target" "$path"
+done
+
+# Configure git + gh auth so the daemon (and agents) can clone/push private repos
+# over HTTPS and open/merge PRs. Without this the daemon fails with
+# "could not read Username for 'https://github.com'" (terminal prompts disabled).
+#   GITHUB_TOKEN  classic PAT scope `repo` (+ `workflow` if editing .github/workflows),
+#                 or a fine-grained PAT with Contents RW, Pull requests RW, Metadata R.
+if [ -n "$GITHUB_TOKEN" ]; then
   git config --global credential.helper store
 fi
 
