@@ -12,7 +12,8 @@ Stack-agnostic by design: it ships the agent CLIs and the `multica` daemon, but
 
 - **Agent CLIs**: Claude Code, OpenAI Codex, OpenCode, Antigravity (`agy`)
 - **`multica`** daemon + CLI
-- **git** + **GitHub CLI** (`gh`) with token-based HTTPS auth wired up
+- **git** + host CLIs for **GitHub** (`gh`), **GitLab** (`glab`) and
+  **Gitea/Forgejo** (`tea`), with token-based HTTPS auth wired up
 - **[mise](https://mise.jdx.dev/)** — language-agnostic version manager for per-project toolchains
 - **add-mcp** — register MCP servers with the agent CLIs
 
@@ -46,12 +47,31 @@ Key ones:
 | `MULTICA_WORKSPACE_ID` | Workspace to claim tasks from |
 | `MULTICA_AGENT_RUNTIME_NAME` | Display name + default stable daemon id |
 | `GITHUB_TOKEN` | git HTTPS + `gh` auth so agents clone/push private repos and open PRs |
+| `GITLAB_TOKEN` / `GITLAB_HOST` | git HTTPS + `glab` auth for GitLab (host defaults to `gitlab.com`; set for self-managed) |
+| `GITEA_TOKEN` / `GITEA_HOST` | git HTTPS + `tea` auth for Gitea/Forgejo (host required, no default) |
 | `SETUP_CMD` | Optional one-time bootstrap run before the daemon starts |
 | `DEEPSEEK_API_KEY` | Optional — enables the DeepSeek provider in `opencode.json` |
 
 Persistence: two named volumes keep daemon identity/auth (`/home/agent/.multica`)
 and the repo cache + agent workdirs (`/home/agent/multica_workspaces`) across
 reruns, so the daemon reuses the same runtime and resumes tasks.
+
+### Version control hosts
+
+The runtime works with GitHub, GitLab, and Gitea/Forgejo. Set a token per host you
+use; each enables both git HTTPS clone/push and the matching CLI for opening
+pull/merge requests:
+
+| Host | Token | Host var | CLI |
+|------|-------|----------|-----|
+| GitHub | `GITHUB_TOKEN` | always `github.com` | `gh` |
+| GitLab | `GITLAB_TOKEN` | `GITLAB_HOST` (default `gitlab.com`) | `glab` |
+| Gitea / Forgejo | `GITEA_TOKEN` | `GITEA_HOST` (required) | `tea` |
+
+`*_HOST` is a bare hostname, no scheme (e.g. `gitea.example.com`). Forgejo is a
+Gitea fork and speaks the same API, so it uses `GITEA_TOKEN` / `GITEA_HOST` and the
+`tea` CLI. You can set tokens for several hosts at once. See
+[`.env.example`](.env.example) for the exact token scopes.
 
 ## Provisioning a toolchain
 
@@ -81,8 +101,9 @@ checkout in place, mount it (uncomment in `docker-compose.yml`):
 - Tokens are passed via env / `.env` only — none are baked into the image.
 - `.env` is git-ignored; only `.env.example` is committed.
 - The image runs as a non-root user.
-- `GITHUB_TOKEN` grants the daemon repo access — scope it to the minimum
-  (`repo`, or a fine-grained PAT limited to the repos you want agents to touch).
+- Host tokens (`GITHUB_TOKEN` / `GITLAB_TOKEN` / `GITEA_TOKEN`) grant the daemon
+  repo access, so scope each to the minimum (e.g. a fine-grained GitHub PAT limited
+  to the repos you want agents to touch).
 
 ## License
 
