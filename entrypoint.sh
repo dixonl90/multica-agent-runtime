@@ -108,6 +108,7 @@ if [ -n "$SETUP_CMD" ]; then
   echo "Running SETUP_CMD..." >&2
   bash -lc "$SETUP_CMD"
 fi
+fi
 
 SERVER_URL="${MULTICA_SERVER_URL:-https://api.multica.ai}"
 APP_URL="${MULTICA_APP_URL:-https://multica.ai}"
