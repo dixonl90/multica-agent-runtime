@@ -49,9 +49,21 @@ Key ones:
 | `SETUP_CMD` | Optional one-time bootstrap run before the daemon starts |
 | `DEEPSEEK_API_KEY` | Optional — enables the DeepSeek provider in `opencode.json` |
 
-Persistence: two named volumes keep daemon identity/auth (`/home/agent/.multica`)
-and the repo cache + agent workdirs (`/home/agent/multica_workspaces`) across
-reruns, so the daemon reuses the same runtime and resumes tasks.
+Persistence: three named volumes survive reruns. They hold daemon identity/auth
+(`/home/agent/.multica`), the repo cache + agent workdirs
+(`/home/agent/multica_workspaces`), and the agent CLIs' own login/onboarding state
+(`/home/agent/.agent-config`), so the daemon reuses the same runtime, resumes
+tasks, and the agents stay logged in.
+
+### Agent logins
+
+Headless use needs nothing here: pass each agent's API key or token via the
+environment and the CLIs authenticate non-interactively. The `agent-config` volume
+is for *interactive* logins, which would otherwise reset on every container
+recreation. All four agents keep their state in one place: Claude and Codex are
+relocated into the volume via `CLAUDE_CONFIG_DIR` / `CODEX_HOME`, and OpenCode and
+Antigravity (which have no relocation env var) are symlinked into it by the
+entrypoint. The same volume is a convenient home for any other persistent config.
 
 ## Provisioning a toolchain
 

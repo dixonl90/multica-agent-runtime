@@ -47,6 +47,7 @@ RUN groupadd -r agent && \
              /home/agent/.config/mise \
              /home/agent/.config/opencode \
              /home/agent/.codex \
+             /home/agent/.agent-config \
              /home/agent/.multica \
              /home/agent/multica_workspaces \
              /home/agent/.gemini/antigravity && \
@@ -94,6 +95,15 @@ COPY --chown=agent:agent entrypoint.sh /entrypoint.sh
 USER root
 RUN chmod +x /entrypoint.sh
 USER agent
+
+# Shared, persistable config dir for the agent CLIs. Mount a volume here (see
+# docker-compose.yml) to keep each agent's login/onboarding across recreations.
+# Claude and Codex relocate into it via env; OpenCode and Antigravity have no
+# relocation env var and are symlinked in by the entrypoint. Pre-created above as
+# agent-owned so an empty named volume mounted here inherits write permission.
+ENV AGENT_CONFIG_DIR=/home/agent/.agent-config \
+    CLAUDE_CONFIG_DIR=/home/agent/.agent-config/claude \
+    CODEX_HOME=/home/agent/.agent-config/codex
 
 ENV MULTICA_AGENT_RUNTIME_NAME=multica-agent-runtime
 WORKDIR /home/agent
