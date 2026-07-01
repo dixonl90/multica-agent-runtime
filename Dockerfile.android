@@ -1,0 +1,57 @@
+# Multica.ai connected-agent runtime — Android + Wear OS variant.
+#
+# Extends the base multica-agent-runtime image with the Android SDK (JDK 17,
+# command-line tools, build-tools, SDK platforms). Supports building Android
+# and Wear OS APKs/AABs and connecting to physical devices over ADB.
+#
+# Build (base image must exist locally first):
+#   docker build -t multica-agent-runtime .
+#   docker build -f Dockerfile.android -t multica-agent-runtime-android .
+#
+# Run (daemon):
+#   docker run --rm --env-file .env multica-agent-runtime-android
+#
+# Run (emulator, requires KVM on the host):
+#   docker run --rm --env-file .env --device /dev/kvm multica-agent-runtime-android
+#
+FROM multica-agent-runtime
+
+ARG CMDLINE_TOOLS_BUILD=11076708
+ARG ANDROID_PLATFORM_VERSION=35
+ARG ANDROID_BUILD_TOOLS_VERSION=35.0.0
+
+USER root
+
+# JDK 17 — minimum required by Android Gradle Plugin 8.x+
+RUN apt-get update && apt-get install -y --no-install-recommends \
+    openjdk-17-jdk-headless \
+    && rm -rf /var/lib/apt/lists/*
+
+ENV JAVA_HOME=/usr/lib/jvm/java-17-openjdk-amd64
+
+ENV ANDROID_SDK_ROOT=/home/agent/android-sdk
+ENV ANDROID_HOME=$ANDROID_SDK_ROOT
+ENV PATH="$ANDROID_SDK_ROOT/cmdline-tools/latest/bin:$ANDROID_SDK_ROOT/platform-tools:$ANDROID_SDK_ROOT/emulator:$PATH"
+
+# Download and unpack Android command-line tools (pinned build for reproducibility)
+RUN mkdir -p "$ANDROID_SDK_ROOT/cmdline-tools" && \
+    curl -fsSL \
+      "https://dl.google.com/android/repository/commandlinetools-linux-${CMDLINE_TOOLS_BUILD}_latest.zip" \
+      -o /tmp/cmdline-tools.zip && \
+    unzip -q /tmp/cmdline-tools.zip -d /tmp/unpack && \
+    mv /tmp/unpack/cmdline-tools "$ANDROID_SDK_ROOT/cmdline-tools/latest" && \
+    rm -rf /tmp/cmdline-tools.zip /tmp/unpack && \
+    chown -R agent:agent "$ANDROID_SDK_ROOT"
+
+USER agent
+
+# Accept all SDK licences, then install core SDK packages.
+# Wear OS apps use the standard Android SDK platform packages — no extra
+# system images are required for building (only for running on an emulator).
+RUN yes | sdkmanager --sdk_root="$ANDROID_SDK_ROOT" --licenses > /dev/null && \
+    sdkmanager --sdk_root="$ANDROID_SDK_ROOT" \
+      "platform-tools" \
+      "platforms;android-${ANDROID_PLATFORM_VERSION}" \
+      "platforms;android-34" \
+      "build-tools;${ANDROID_BUILD_TOOLS_VERSION}" \
+      "build-tools;34.0.0"

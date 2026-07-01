@@ -78,6 +78,76 @@ best handled one of three ways:
    `SETUP_CMD="add-mcp <url> --name foo -a claude-code -a codex -g -y"`.
 3. **Extend the image** — `FROM multica-agent-runtime` and add your SDKs/CLIs.
 
+## Android and Wear OS
+
+A pre-built **Android variant** ships as `Dockerfile.android`. It extends the
+base image with:
+
+- **JDK 17** — required for Android Gradle Plugin 8.x+
+- **Android command-line tools** (`sdkmanager`, `avdmanager`)
+- **SDK Platforms 34 and 35** + matching build-tools
+- **`adb`** (platform-tools) — connect to a physical device over USB or TCP
+
+Wear OS apps use the standard Android SDK — no extra packages are needed for
+building. Wear OS-specific libraries (`androidx.wear`, `androidx.wear.compose`,
+etc.) are fetched from Maven by Gradle as usual.
+
+### Build the Android image
+
+The Android image extends the base image, so build the base first:
+
+```bash
+docker build -t multica-agent-runtime .
+docker build -f Dockerfile.android -t multica-agent-runtime-android .
+```
+
+Or with Compose (base is built automatically when the base service is built
+first):
+
+```bash
+docker compose build runtime
+docker compose --profile android build android-runtime
+docker compose --profile android up -d android-runtime
+```
+
+### Connecting a physical device
+
+Plug the device in before starting the container and forward the USB device,
+or use ADB over TCP (enable TCP on the device first):
+
+```bash
+# ADB over TCP
+docker run --rm --env-file .env \
+  multica-agent-runtime-android \
+  bash -c "adb connect 192.168.1.42:5555 && exec multica daemon start --foreground"
+```
+
+### Emulator support
+
+Android and Wear OS emulators require KVM (hardware virtualisation). Uncomment
+the `devices` block in `docker-compose.yml` (or pass `--device /dev/kvm`), then
+install system images and create an AVD:
+
+```bash
+# Inside the container or via SETUP_CMD:
+sdkmanager "system-images;android-34;google_apis;x86_64"                    # Android
+sdkmanager "system-images;android-30;google_apis_wear_os;x86_64"            # Wear OS
+avdmanager create avd -n android34 -k "system-images;android-34;google_apis;x86_64"
+```
+
+### Build args
+
+| Arg | Default | Purpose |
+|-----|---------|---------|
+| `CMDLINE_TOOLS_BUILD` | `11076708` | Android command-line tools build number |
+| `ANDROID_PLATFORM_VERSION` | `35` | Primary SDK platform to install |
+| `ANDROID_BUILD_TOOLS_VERSION` | `35.0.0` | Primary build-tools version |
+
+Override at build time with `--build-arg`, e.g.:
+```bash
+docker build -f Dockerfile.android --build-arg ANDROID_PLATFORM_VERSION=34 .
+```
+
 ## Working on a local project
 
 By default the daemon clones repos itself. To instead have agents work on a local

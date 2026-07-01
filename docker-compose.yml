@@ -32,6 +32,30 @@ services:
       # - ./your-project:/app
     restart: unless-stopped
 
+  # Android + Wear OS variant. Includes JDK 17 and the Android SDK so agents
+  # can build APKs/AABs and connect to physical devices over ADB.
+  # Start with: docker compose --profile android up -d android-runtime
+  # Build the base image first: docker compose build runtime
+  android-runtime:
+    build:
+      context: .
+      dockerfile: Dockerfile.android
+    image: multica-agent-runtime-android
+    env_file:
+      - .env
+    volumes:
+      - multica-state:/home/agent/.multica
+      - multica-workspaces:/home/agent/multica_workspaces
+      - agent-config:/home/agent/.agent-config
+      # Optional: mount a local project for agents to work on in place.
+      # - ./your-project:/app
+    # Uncomment to enable KVM for Android emulator support:
+    # devices:
+    #   - /dev/kvm:/dev/kvm
+    restart: unless-stopped
+    profiles:
+      - android
+
 volumes:
   multica-state:
   multica-workspaces:
