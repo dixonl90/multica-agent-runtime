@@ -1,8 +1,9 @@
 # Multica.ai connected-agent runtime — generic base image.
 #
 # Ships the multica daemon + agent CLIs (Claude Code, Codex, OpenCode,
-# Antigravity) + git/gh + mise. NO language toolchain is baked in — this image
-# is stack-agnostic. Projects provision their own toolchain at runtime via mise,
+# Antigravity) + git and the host CLIs gh/glab/tea + mise. NO language toolchain
+# is baked in, so this image is stack-agnostic. Projects provision their own
+# toolchain at runtime via mise,
 # a SETUP_CMD bootstrap, or by extending this image (see README).
 #
 # Build:  docker build -t multica-agent-runtime .
@@ -36,6 +37,23 @@ RUN curl -fsSL https://cli.github.com/packages/githubcli-archive-keyring.gpg \
       > /etc/apt/sources.list.d/github-cli.list && \
     apt-get update && apt-get install -y --no-install-recommends gh && \
     rm -rf /var/lib/apt/lists/*
+
+# GitLab CLI (glab): agents use it to open and merge MRs. Reads GITLAB_TOKEN /
+# GITLAB_HOST from the environment (the entrypoint configures them). Pinned .deb
+# from the official GitLab release, arch matched to the build platform.
+RUN v=1.106.0 && arch="$(dpkg --print-architecture)" && \
+    curl -fsSL "https://gitlab.com/gitlab-org/cli/-/releases/v${v}/downloads/glab_${v}_linux_${arch}.deb" \
+      -o /tmp/glab.deb && \
+    dpkg -i /tmp/glab.deb && \
+    rm /tmp/glab.deb
+
+# Gitea CLI (tea): agents use it to open and merge PRs on Gitea AND Forgejo
+# (Forgejo is a Gitea fork and speaks the same API). Authenticated per-run by the
+# entrypoint via `tea login add`. Pinned static binary from the official mirror.
+RUN v=0.14.2 && arch="$(dpkg --print-architecture)" && \
+    curl -fsSL "https://dl.gitea.com/tea/${v}/tea-${v}-linux-${arch}" \
+      -o /usr/local/bin/tea && \
+    chmod +x /usr/local/bin/tea
 
 # ── Non-root user ─────────────────────────────────────────────────────────
 RUN groupadd -r agent && \

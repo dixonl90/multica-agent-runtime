@@ -13,6 +13,8 @@ set -e
 #   MULTICA_AGENT_RUNTIME_NAME Display name for this runtime
 #   MULTICA_DAEMON_ID          Stable daemon id (defaults to the runtime name)
 #   GITHUB_TOKEN               If set, configures git HTTPS auth + gh so agents can clone/push private repos
+#   GITLAB_TOKEN / GITLAB_HOST GitLab auth for git HTTPS + glab (host defaults to gitlab.com)
+#   GITEA_TOKEN / GITEA_HOST   Gitea/Forgejo auth for git HTTPS + tea (host required, no default)
 #   AGENT_CONFIG_DIR           Shared dir for agent CLI logins/onboarding (default ~/.agent-config; mount a volume to persist)
 #   SETUP_CMD                  Optional one-time bootstrap run before the daemon starts (toolchain, MCPs, ...)
 #
@@ -24,6 +26,33 @@ for env_file in /app/.env /.env /run/secrets/multica.env; do
   fi
 done
 
+# Configure git HTTPS auth + the host CLIs so the daemon (and agents) can
+# clone/push private repos and open/merge PRs/MRs. Without git creds the daemon
+# fails with "could not read Username for 'https://...'" (terminal prompts disabled).
+#
+# One token per host platform. GitHub is always github.com; self-hosted Gitea,
+# Forgejo and self-managed GitLab live on arbitrary domains, so those take a bare
+# *_HOST (hostname only, no scheme; it is interpolated into the credentials URL).
+#   GITHUB_TOKEN  classic PAT scope `repo` (+ `workflow`), or a fine-grained PAT
+#                 with Contents RW, Pull requests RW, Metadata R.
+#   GITLAB_TOKEN  PAT scopes `api` + `write_repository` (+ GITLAB_HOST for self-managed).
+#   GITEA_TOKEN   token with repo + PR scopes (+ GITEA_HOST, required, no default).
+CRED_FILE="$HOME/.git-credentials"
+: > "$CRED_FILE"
+chmod 600 "$CRED_FILE"
+have_git_creds=0
+
+add_git_cred() {  # $1=host (no scheme)  $2=username  $3=token
+  [ -n "$1" ] && [ -n "$3" ] || return 0
+  printf 'https://%s:%s@%s\n' "$2" "$3" "$1" >> "$CRED_FILE"
+  have_git_creds=1
+}
+
+add_git_cred "github.com"                 "x-access-token"        "$GITHUB_TOKEN"
+add_git_cred "${GITLAB_HOST:-gitlab.com}" "oauth2"                "$GITLAB_TOKEN"
+add_git_cred "$GITEA_HOST"                "${GITEA_USER:-oauth2}" "$GITEA_TOKEN"
+
+if [ "$have_git_creds" = 1 ]; then
 # Shared config dir for the agent CLIs. Mount a volume at $AGENT_CONFIG_DIR (see
 # docker-compose.yml) to persist each agent's login/onboarding across container
 # recreation. Claude and Codex are pointed here by env (set in the Dockerfile);
@@ -50,10 +79,25 @@ done
 #                 or a fine-grained PAT with Contents RW, Pull requests RW, Metadata R.
 if [ -n "$GITHUB_TOKEN" ]; then
   git config --global credential.helper store
-  printf 'https://x-access-token:%s@github.com\n' "$GITHUB_TOKEN" > "$HOME/.git-credentials"
-  chmod 600 "$HOME/.git-credentials"
-  # gh reads GH_TOKEN first, then GITHUB_TOKEN — export GH_TOKEN so it is unambiguous.
+fi
+
+# gh reads GH_TOKEN first, then GITHUB_TOKEN, so export GH_TOKEN to be unambiguous.
+if [ -n "$GITHUB_TOKEN" ]; then
   export GH_TOKEN="${GH_TOKEN:-$GITHUB_TOKEN}"
+fi
+
+# glab reads GITLAB_TOKEN + GITLAB_HOST straight from the environment (already
+# exported via the .env sourcing above), so no extra login step is needed.
+
+# tea keeps auth in a config file, so log in non-interactively when a Gitea token
+# is set. Needs the instance URL, so prepend https:// to the bare GITEA_HOST.
+if [ -n "$GITEA_TOKEN" ] && [ -n "$GITEA_HOST" ]; then
+  case "$GITEA_HOST" in
+    http://*|https://*) tea_url="$GITEA_HOST" ;;
+    *)                  tea_url="https://$GITEA_HOST" ;;
+  esac
+  tea login add --name "${GITEA_LOGIN_NAME:-gitea}" --url "$tea_url" --token "$GITEA_TOKEN" >/dev/null 2>&1 \
+    || echo "warning: 'tea login add' failed; check GITEA_HOST / GITEA_TOKEN" >&2
 fi
 
 # Optional one-time bootstrap. Use to provision a project toolchain or register
@@ -63,6 +107,7 @@ fi
 if [ -n "$SETUP_CMD" ]; then
   echo "Running SETUP_CMD..." >&2
   bash -lc "$SETUP_CMD"
+fi
 fi
 
 SERVER_URL="${MULTICA_SERVER_URL:-https://api.multica.ai}"
