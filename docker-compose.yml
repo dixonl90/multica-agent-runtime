@@ -31,6 +31,12 @@ services:
       # Optional: mount a local project for agents to work on in place (otherwise
       # the daemon clones repos itself into multica_workspaces per task).
       # - ./your-project:/app
+    # Resource guardrails. This container runs arbitrary agent-driven project
+    # builds, so cap it: a runaway process (fork bomb, a recursive tool loop,
+    # a memory-hungry build) then dies inside the container instead of thrashing
+    # the whole host. Raise mem_limit if your builds legitimately need more.
+    pids_limit: 512
+    mem_limit: 12g
     restart: unless-stopped
 
 volumes:
