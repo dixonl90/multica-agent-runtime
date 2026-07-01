@@ -80,72 +80,78 @@ best handled one of three ways:
 
 ## Android and Wear OS
 
-A pre-built **Android variant** ships as `Dockerfile.android`. It extends the
-base image with:
+Android support is installed at runtime via `SETUP_CMD` using the
+[`scripts/setup-android.sh`](scripts/setup-android.sh) helper included in
+this repo. This keeps the base image generic — the Android SDK is not baked
+in, and the image stays usable for any other stack.
+
+The script installs:
 
 - **JDK 17** — required for Android Gradle Plugin 8.x+
 - **Android command-line tools** (`sdkmanager`, `avdmanager`)
 - **SDK Platforms 34 and 35** + matching build-tools
 - **`adb`** (platform-tools) — connect to a physical device over USB or TCP
 
-Wear OS apps use the standard Android SDK — no extra packages are needed for
-building. Wear OS-specific libraries (`androidx.wear`, `androidx.wear.compose`,
-etc.) are fetched from Maven by Gradle as usual.
+Wear OS apps use the standard Android SDK — no extra packages are required
+to build. Wear OS-specific libraries (`androidx.wear`, `androidx.wear.compose`,
+etc.) are fetched by Gradle from Maven as usual.
 
-### Build the Android image
+### Quickstart
 
-The Android image extends the base image, so build the base first:
+1. Copy `scripts/setup-android.sh` into a location accessible inside the
+   container (e.g. mount it or include it in a project repo), then set
+   `SETUP_CMD` in your `.env`:
 
-```bash
-docker build -t multica-agent-runtime .
-docker build -f Dockerfile.android -t multica-agent-runtime-android .
-```
+   ```
+   SETUP_CMD=bash /home/agent/scripts/setup-android.sh
+   ```
 
-Or with Compose (base is built automatically when the base service is built
-first):
+2. To avoid re-downloading the SDK (~1 GB) on every container restart, mount
+   a named volume at the SDK root:
 
-```bash
-docker compose build runtime
-docker compose --profile android build android-runtime
-docker compose --profile android up -d android-runtime
-```
+   ```yaml
+   # docker-compose.yml
+   services:
+     runtime:
+       volumes:
+         - android-sdk:/home/agent/android-sdk
+   volumes:
+     android-sdk:
+   ```
+
+3. `docker compose up -d --build` — the daemon bootstraps the SDK on first
+   start, then reuses the volume on subsequent starts.
 
 ### Connecting a physical device
 
-Plug the device in before starting the container and forward the USB device,
-or use ADB over TCP (enable TCP on the device first):
+Use ADB over TCP (enable TCP on the device first):
 
 ```bash
-# ADB over TCP
-docker run --rm --env-file .env \
-  multica-agent-runtime-android \
-  bash -c "adb connect 192.168.1.42:5555 && exec multica daemon start --foreground"
+# Inside the container or via SETUP_CMD:
+adb connect 192.168.1.42:5555
 ```
 
 ### Emulator support
 
-Android and Wear OS emulators require KVM (hardware virtualisation). Uncomment
-the `devices` block in `docker-compose.yml` (or pass `--device /dev/kvm`), then
+Android and Wear OS emulators require KVM (hardware virtualisation). Pass
+`--device /dev/kvm` (or add a `devices` block to `docker-compose.yml`), then
 install system images and create an AVD:
 
 ```bash
-# Inside the container or via SETUP_CMD:
-sdkmanager "system-images;android-34;google_apis;x86_64"                    # Android
-sdkmanager "system-images;android-30;google_apis_wear_os;x86_64"            # Wear OS
+# Inside the container or appended to SETUP_CMD:
+sdkmanager "system-images;android-34;google_apis;x86_64"                 # Android
+sdkmanager "system-images;android-30;google_apis_wear_os;x86_64"         # Wear OS
 avdmanager create avd -n android34 -k "system-images;android-34;google_apis;x86_64"
 ```
 
-### Build args
+### Customising SDK versions
 
-| Arg | Default | Purpose |
-|-----|---------|---------|
-| `CMDLINE_TOOLS_BUILD` | `11076708` | Android command-line tools build number |
-| `ANDROID_PLATFORM_VERSION` | `35` | Primary SDK platform to install |
-| `ANDROID_BUILD_TOOLS_VERSION` | `35.0.0` | Primary build-tools version |
+Override the defaults with env vars (see the script header for the full list):
 
-Override at build time with `--build-arg`, e.g.:
-```bash
-docker build -f Dockerfile.android --build-arg ANDROID_PLATFORM_VERSION=34 .
+```
+ANDROID_PLATFORM_VERSION=34
+ANDROID_BUILD_TOOLS_VERSION=34.0.0
+ANDROID_CMDLINE_TOOLS_BUILD=11076708
 ```
 
 ## Working on a local project
