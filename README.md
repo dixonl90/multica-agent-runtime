@@ -20,9 +20,31 @@ Base image `node:20-bookworm` (pinned by digest). Runs as a non-root `agent` use
 
 ## Quickstart
 
+A pre-built multi-platform image (`linux/amd64`, `linux/arm64`) is published to
+the GitHub Container Registry on every push to `main` and on every version tag:
+
+```bash
+docker pull ghcr.io/dixonl90/multica-agent-runtime:latest
+```
+
+To run it directly on your server:
+
+```bash
+cp .env.example .env   # fill in MULTICA_TOKEN (+ GITHUB_TOKEN for private repos)
+docker run -d \
+  --env-file .env \
+  --restart unless-stopped \
+  -v multica-state:/home/agent/.multica \
+  -v multica-workspaces:/home/agent/multica_workspaces \
+  -v agent-config:/home/agent/.agent-config \
+  ghcr.io/dixonl90/multica-agent-runtime:latest
+```
+
+Or use Compose (builds locally if the image is not already present):
+
 ```bash
 cp .env.example .env          # fill in MULTICA_TOKEN (+ GITHUB_TOKEN for private repos)
-docker compose up -d --build  # build + start the daemon
+docker compose up -d          # pull/start the daemon (add --build to build locally)
 docker compose logs -f        # follow daemon output
 docker compose down           # stop (named volumes persist)
 ```
@@ -32,7 +54,7 @@ container drops to an interactive shell instead of starting the daemon — handy
 a plain dev container:
 
 ```bash
-docker run -it --rm multica-agent-runtime
+docker run -it --rm ghcr.io/dixonl90/multica-agent-runtime:latest
 ```
 
 ## Configuration

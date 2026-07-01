@@ -11,8 +11,9 @@
 
 services:
   runtime:
+    # Pull the pre-built image from GHCR. Pass `--build` to build locally instead.
+    image: ghcr.io/dixonl90/multica-agent-runtime:latest
     build: .
-    image: multica-agent-runtime
     # No container_name — let Compose name it project-scoped so it never collides
     # with a manually-run container holding a fixed name.
     env_file:
