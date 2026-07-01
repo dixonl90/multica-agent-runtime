@@ -55,6 +55,15 @@ RUN v=0.14.2 && arch="$(dpkg --print-architecture)" && \
       -o /usr/local/bin/tea && \
     chmod +x /usr/local/bin/tea
 
+# yq (mikefarah v4) — a REAL binary, deliberately NOT managed by mise. Some mise
+# plugins shell out to bare `yq` while resolving versions; if `yq` were a mise
+# shim that call would re-enter mise and recurse. A plain binary on PATH breaks
+# the loop while all toolchains stay mise-managed. Pinned from the GitHub release
+# because Debian's apt `yq` is the unrelated kislyuk python wrapper.
+ARG YQ_VERSION=v4.44.3
+RUN curl -fsSL "https://github.com/mikefarah/yq/releases/download/${YQ_VERSION}/yq_linux_$(dpkg --print-architecture)" \
+      -o /usr/local/bin/yq && chmod +x /usr/local/bin/yq
+
 # ── Non-root user ─────────────────────────────────────────────────────────
 RUN groupadd -r agent && \
     useradd -r -g agent -m -s /bin/bash agent && \
