@@ -10,8 +10,8 @@
 # Run (daemon):  docker run --rm --env-file .env multica-agent-runtime
 # Run (shell):   docker run -it --rm multica-agent-runtime        # no token -> shell
 #
-# Base image pinned by digest for reproducible builds (node:20-bookworm).
-FROM node:20-bookworm@sha256:8f693eaa7e0a8e71560c9a82b55fd54c2ae920a2ba5d2cde28bac7d1c01c9ba5
+# Base image pinned by digest for reproducible builds (node:22-bookworm).
+FROM node:22-bookworm@sha256:c601a46abb4d2ab80a9dc3da208d50d1122642d53f17a101926ace71e5a9bf1c
 
 ARG DEBIAN_FRONTEND=noninteractive
 
@@ -21,6 +21,7 @@ RUN apt-get update && apt-get install -y --no-install-recommends \
     build-essential \
     curl \
     git \
+    python3-pip \
     unzip \
     xz-utils \
     zip \
@@ -84,6 +85,9 @@ ENV HOME=/home/agent
 # ── Agent CLIs (pinned for reproducible builds) ───────────────────────────
 # Postinstall scripts run as root and create config/cache dirs; reclaim
 # ownership afterwards so the non-root agent user can write them.
+# PEP 668: Debian bookworm marks its Python as externally-managed, blocking
+# pip even as root. Setting this flag is safe inside a container.
+ENV PIP_BREAK_SYSTEM_PACKAGES=1
 RUN npm install -g \
     @anthropic-ai/claude-code@2.1.198 \
     @openai/codex@0.142.5 \
