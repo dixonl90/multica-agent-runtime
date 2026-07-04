@@ -10,7 +10,7 @@ Stack-agnostic by design: it ships the agent CLIs and the `multica` daemon, but
 
 ## What's inside
 
-- **Agent CLIs**: Claude Code, OpenAI Codex, OpenCode, Antigravity (`agy`)
+- **Agent CLIs**: Claude Code, OpenAI Codex, OpenCode, Antigravity (`agy`), Hermes (`hermes`), Pi (`pi`), OpenClaw (`openclaw`)
 - **`multica`** daemon + CLI
 - **git** + host CLIs for **GitHub** (`gh`), **GitLab** (`glab`) and
   **Gitea/Forgejo** (`tea`), with token-based HTTPS auth wired up
@@ -73,7 +73,9 @@ Key ones:
 | `GITEA_TOKEN` / `GITEA_HOST` | git HTTPS + `tea` auth for Gitea/Forgejo (host required, no default) |
 | `SETUP_CMD` | Optional one-time bootstrap run before the daemon starts |
 | `DEEPSEEK_API_KEY` | Optional — enables the DeepSeek provider in `opencode.json` |
-| `OPENROUTER_API_KEY` | Optional — enables the OpenRouter provider in `opencode.json` (Hermes-3 and Pi models) |
+| `HERMES_API_KEY` | Optional — authenticates the `hermes` CLI |
+| `PI_API_KEY` | Optional — authenticates the `pi` CLI |
+| `OPENCLAW_API_KEY` | Optional — authenticates the `openclaw` CLI |
 
 Persistence: three named volumes survive reruns. They hold daemon identity/auth
 (`/home/agent/.multica`), the repo cache + agent workdirs
