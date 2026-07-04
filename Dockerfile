@@ -85,6 +85,9 @@ ENV HOME=/home/agent
 # ── Agent CLIs (pinned for reproducible builds) ───────────────────────────
 # Postinstall scripts run as root and create config/cache dirs; reclaim
 # ownership afterwards so the non-root agent user can write them.
+# PEP 668: Debian bookworm marks its Python as externally-managed, blocking
+# pip even as root. Setting this flag is safe inside a container.
+ENV PIP_BREAK_SYSTEM_PACKAGES=1
 RUN npm install -g \
     @anthropic-ai/claude-code@2.1.198 \
     @openai/codex@0.142.5 \
