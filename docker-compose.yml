@@ -28,6 +28,7 @@ services:
       # Agent CLI logins/onboarding (Claude, Codex, OpenCode, Antigravity): persist
       # so interactive logins survive recreation. Also a home for other agent config.
       - agent-config:/home/agent/.agent-config
+      - mise-cache:/home/agent/.local/share/mise
       # Optional: mount a local project for agents to work on in place (otherwise
       # the daemon clones repos itself into multica_workspaces per task).
       # - ./your-project:/app
@@ -38,8 +39,13 @@ services:
     pids_limit: 512
     mem_limit: 12g
     restart: unless-stopped
+    devices:
+      - /dev/kvm
+    group_add:
+      - "104"        # host kvm gid (matches /dev/kvm root:104 on nevis)
 
 volumes:
   multica-state:
   multica-workspaces:
   agent-config:
+  mise-cache:
