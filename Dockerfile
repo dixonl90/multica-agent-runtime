@@ -1,7 +1,7 @@
 # Multica.ai connected-agent runtime — generic base image.
 #
 # Ships the multica daemon + agent CLIs (Claude Code, Codex, OpenCode,
-# Antigravity) + git and the host CLIs gh/glab/tea + mise. NO language toolchain
+# Antigravity, Hermes, Pi, OpenClaw) + git and the host CLIs gh/glab/tea + mise. NO language toolchain
 # is baked in, so this image is stack-agnostic. Projects provision their own
 # toolchain at runtime via mise,
 # a SETUP_CMD bootstrap, or by extending this image (see README).
@@ -88,6 +88,9 @@ RUN npm install -g \
     @anthropic-ai/claude-code@2.1.198 \
     @openai/codex@0.142.5 \
     opencode-ai@1.17.13 \
+    hermes-agent@0.18.0 \
+    @earendil-works/pi-coding-agent@0.74.2 \
+    openclaw@2026.6.11 \
     add-mcp@1.13.0 \
     && chown -R agent:agent /home/agent
 
