@@ -73,6 +73,7 @@ Key ones:
 | `GITEA_TOKEN` / `GITEA_HOST` | git HTTPS + `tea` auth for Gitea/Forgejo (host required, no default) |
 | `SETUP_CMD` | Optional one-time bootstrap run before the daemon starts |
 | `DEEPSEEK_API_KEY` | Optional — enables the DeepSeek provider in `opencode.json` |
+| `OPENROUTER_API_KEY` | Optional — enables the OpenRouter provider in `opencode.json` (Hermes-3 and Pi models) |
 
 Persistence: three named volumes survive reruns. They hold daemon identity/auth
 (`/home/agent/.multica`), the repo cache + agent workdirs

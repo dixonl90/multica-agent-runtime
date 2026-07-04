@@ -12,6 +12,19 @@
         "deepseek-chat": { "name": "DeepSeek Chat" },
         "deepseek-reasoner": { "name": "DeepSeek Reasoner" }
       }
+    },
+    "openrouter": {
+      "npm": "@ai-sdk/openai-compatible",
+      "name": "OpenRouter",
+      "options": {
+        "baseURL": "https://openrouter.ai/api/v1",
+        "apiKey": "{env:OPENROUTER_API_KEY}"
+      },
+      "models": {
+        "nousresearch/hermes-3-llama-3.1-70b": { "name": "Hermes-3 70B (NousResearch)" },
+        "nousresearch/hermes-3-llama-3.1-405b": { "name": "Hermes-3 405B (NousResearch)" },
+        "inflection/inflection-3-pi": { "name": "Pi 3 (Inflection)" }
+      }
     }
   }
 }
