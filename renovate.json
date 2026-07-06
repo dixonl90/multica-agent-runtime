@@ -1,0 +1,49 @@
+{
+  "$schema": "https://docs.renovatebot.com/renovate-schema.json",
+  "extends": ["config:base"],
+  "packageRules": [
+    {
+      "matchManagers": ["regex", "dockerfile"],
+      "matchUpdateTypes": ["minor", "patch"],
+      "automerge": true,
+      "automergeType": "pr",
+      "automergeStrategy": "squash"
+    }
+  ],
+  "regexManagers": [
+    {
+      "fileMatch": ["^Dockerfile$"],
+      "matchStrings": [
+        "    (?<depName>@[\\w-]+\\/[\\w-]+|[\\w][\\w-]*)@(?<currentValue>[\\d][\\d.a-zA-Z-]*) \\\\"
+      ],
+      "datasourceTemplate": "npm"
+    },
+    {
+      "fileMatch": ["^Dockerfile$"],
+      "matchStrings": [
+        "ARG YQ_VERSION=(?<currentValue>v[\\d.]+)"
+      ],
+      "depNameTemplate": "mikefarah/yq",
+      "datasourceTemplate": "github-releases"
+    },
+    {
+      "fileMatch": ["^Dockerfile$"],
+      "matchStrings": [
+        "RUN v=(?<currentValue>[\\d.]+) && arch[\\s\\S]*?gitlab\\.com/gitlab-org"
+      ],
+      "depNameTemplate": "gitlab-org/cli",
+      "registryUrls": ["https://gitlab.com"],
+      "datasourceTemplate": "gitlab-releases",
+      "extractVersionTemplate": "^v?(?<version>.*)$"
+    },
+    {
+      "fileMatch": ["^Dockerfile$"],
+      "matchStrings": [
+        "RUN v=(?<currentValue>[\\d.]+) && arch[\\s\\S]*?dl\\.gitea\\.com/tea"
+      ],
+      "depNameTemplate": "go-gitea/tea",
+      "datasourceTemplate": "github-releases",
+      "extractVersionTemplate": "^v?(?<version>.*)$"
+    }
+  ]
+}
