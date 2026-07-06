@@ -61,7 +61,7 @@ RUN v=0.14.2 && arch="$(dpkg --print-architecture)" && \
 # shim that call would re-enter mise and recurse. A plain binary on PATH breaks
 # the loop while all toolchains stay mise-managed. Pinned from the GitHub release
 # because Debian's apt `yq` is the unrelated kislyuk python wrapper.
-ARG YQ_VERSION=v4.44.3
+ARG YQ_VERSION=v4.53.3
 RUN curl -fsSL "https://github.com/mikefarah/yq/releases/download/${YQ_VERSION}/yq_linux_$(dpkg --print-architecture)" \
       -o /usr/local/bin/yq && chmod +x /usr/local/bin/yq
 
@@ -89,13 +89,13 @@ ENV HOME=/home/agent
 # pip even as root. Setting this flag is safe inside a container.
 ENV PIP_BREAK_SYSTEM_PACKAGES=1
 RUN npm install -g \
-    @anthropic-ai/claude-code@2.1.198 \
+    @anthropic-ai/claude-code@2.1.201 \
     @openai/codex@0.142.5 \
-    opencode-ai@1.17.13 \
+    opencode-ai@1.17.14 \
     hermes-agent@0.18.0 \
-    @earendil-works/pi-coding-agent@0.74.2 \
+    @earendil-works/pi-coding-agent@0.80.3 \
     openclaw@2026.6.11 \
-    add-mcp@1.13.0 \
+    add-mcp@1.13.3 \
     && chown -R agent:agent /home/agent
 
 # ── Everything below runs as the non-root agent user ──────────────────────
