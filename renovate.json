@@ -32,7 +32,6 @@
         "RUN v=(?<currentValue>[\\d.]+) && arch[\\s\\S]*?gitlab\\.com/gitlab-org"
       ],
       "depNameTemplate": "gitlab-org/cli",
-      "registryUrls": ["https://gitlab.com"],
       "datasourceTemplate": "gitlab-releases",
       "extractVersionTemplate": "^v?(?<version>.*)$"
     },
