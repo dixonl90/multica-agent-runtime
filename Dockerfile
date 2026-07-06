@@ -137,7 +137,8 @@ USER agent
 # agent-owned so an empty named volume mounted here inherits write permission.
 ENV AGENT_CONFIG_DIR=/home/agent/.agent-config \
     CLAUDE_CONFIG_DIR=/home/agent/.agent-config/claude \
-    CODEX_HOME=/home/agent/.agent-config/codex
+    CODEX_HOME=/home/agent/.agent-config/codex \
+    CODEX_UNSAFE_ALLOW_NO_SANDBOX=1
 
 ENV MULTICA_AGENT_RUNTIME_NAME=multica-agent-runtime
 WORKDIR /home/agent
