@@ -11,8 +11,10 @@
 
 services:
   runtime:
-    # Pull the pre-built image from GHCR. Pass `--build` to build locally instead.
+    # Pull the pre-built image from GHCR on each `up` so merged fixes on `latest`
+    # are not masked by a stale local cache. Pass `--build` to build locally instead.
     image: ghcr.io/dixonl90/multica-agent-runtime:latest
+    pull_policy: always
     build: .
     # No container_name — let Compose name it project-scoped so it never collides
     # with a manually-run container holding a fixed name.
