@@ -11,7 +11,7 @@
 # Run (shell):   docker run -it --rm multica-agent-runtime        # no token -> shell
 #
 # Base image pinned by digest for reproducible builds (node:22-bookworm).
-FROM node:22-bookworm@sha256:c601a46abb4d2ab80a9dc3da208d50d1122642d53f17a101926ace71e5a9bf1c
+FROM node:22-bookworm@sha256:a25c9934ff6382cd4f08b6bc26c82bf4ea69b1e6f8dabfb2ead457374127c365
 
 ARG DEBIAN_FRONTEND=noninteractive
 
