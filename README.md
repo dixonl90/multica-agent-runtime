@@ -45,7 +45,7 @@ Or use Compose (builds locally if the image is not already present):
 
 ```bash
 cp .env.example .env          # fill in MULTICA_TOKEN (+ GITHUB_TOKEN for private repos)
-docker compose up -d          # pull/start the daemon (add --build to build locally)
+docker compose up -d          # pulls fresh `latest` by default, then starts the daemon
 docker compose logs -f        # follow daemon output
 docker compose down           # stop (named volumes persist)
 ```
@@ -109,6 +109,14 @@ pull/merge requests:
 Gitea fork and speaks the same API, so it uses `GITEA_TOKEN` / `GITEA_HOST` and the
 `tea` CLI. You can set tokens for several hosts at once. See
 [`.env.example`](.env.example) for the exact token scopes.
+
+### Codex sandbox fallback
+
+Codex uses `bubblewrap` for command sandboxing when the host kernel/container
+policy allows it. Some hosts still reject the required privilege changes even
+with a setuid `bwrap`; in that case the entrypoint detects the failure at
+startup and exports `CODEX_UNSAFE_ALLOW_NO_SANDBOX=1` so Codex keeps working
+instead of failing on every command.
 
 ## Provisioning a toolchain
 

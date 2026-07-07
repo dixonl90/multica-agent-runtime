@@ -26,6 +26,21 @@ for env_file in /app/.env /.env /run/secrets/multica.env; do
   fi
 done
 
+# Codex prefers to sandbox shell commands with bubblewrap. Some container hosts
+# still block the required privilege changes even when /usr/bin/bwrap is setuid,
+# which makes Codex fail before it can do useful work. Probe bwrap once at
+# startup and fall back to Codex's explicit no-sandbox mode only when the probe
+# fails.
+if command -v bwrap >/dev/null 2>&1; then
+  if ! bwrap --ro-bind / / --proc /proc --dev /dev /bin/true >/dev/null 2>&1; then
+    export CODEX_UNSAFE_ALLOW_NO_SANDBOX=1
+    echo "warning: bubblewrap is unavailable in this container; falling back to no-sandbox Codex mode" >&2
+  fi
+else
+  export CODEX_UNSAFE_ALLOW_NO_SANDBOX=1
+  echo "warning: bubblewrap is not installed; falling back to no-sandbox Codex mode" >&2
+fi
+
 # Configure git HTTPS auth + the host CLIs so the daemon (and agents) can
 # clone/push private repos and open/merge PRs/MRs. Without git creds the daemon
 # fails with "could not read Username for 'https://...'" (terminal prompts disabled).
