@@ -90,7 +90,7 @@ ENV HOME=/home/agent
 # pip even as root. Setting this flag is safe inside a container.
 ENV PIP_BREAK_SYSTEM_PACKAGES=1
 RUN npm install -g \
-    @anthropic-ai/claude-code@2.1.201 \
+    @anthropic-ai/claude-code@2.1.202 \
     @openai/codex@0.142.5 \
     opencode-ai@1.17.14 \
     hermes-agent@0.18.0 \
