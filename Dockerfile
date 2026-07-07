@@ -28,7 +28,9 @@ RUN apt-get update && apt-get install -y --no-install-recommends \
     zip \
     ca-certificates \
     gnupg \
-    && rm -rf /var/lib/apt/lists/*
+    && rm -rf /var/lib/apt/lists/* \
+    # setuid lets bwrap create namespaces when kernel.unprivileged_userns_clone=0 (containers)
+    && chmod u+s /usr/bin/bwrap
 
 # GitHub CLI (gh) — agents use it to open and merge PRs. Reads GITHUB_TOKEN /
 # GH_TOKEN from the environment (the entrypoint exports GH_TOKEN).
