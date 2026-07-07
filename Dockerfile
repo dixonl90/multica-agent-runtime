@@ -23,6 +23,7 @@ RUN apt-get update && apt-get install -y --no-install-recommends \
     curl \
     git \
     python3-pip \
+    ripgrep \
     unzip \
     xz-utils \
     zip \
