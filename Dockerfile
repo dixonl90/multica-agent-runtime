@@ -46,7 +46,7 @@ RUN curl -fsSL https://cli.github.com/packages/githubcli-archive-keyring.gpg \
 # GitLab CLI (glab): agents use it to open and merge MRs. Reads GITLAB_TOKEN /
 # GITLAB_HOST from the environment (the entrypoint configures them). Pinned .deb
 # from the official GitLab release, arch matched to the build platform.
-RUN v=1.106.0 && arch="$(dpkg --print-architecture)" && \
+RUN v=1.107.0 && arch="$(dpkg --print-architecture)" && \
     curl -fsSL "https://gitlab.com/gitlab-org/cli/-/releases/v${v}/downloads/glab_${v}_linux_${arch}.deb" \
       -o /tmp/glab.deb && \
     dpkg -i /tmp/glab.deb && \
