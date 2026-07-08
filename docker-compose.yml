@@ -31,6 +31,9 @@ services:
       # so interactive logins survive recreation. Also a home for other agent config.
       - agent-config:/home/agent/.agent-config
       - mise-cache:/home/agent/.local/share/mise
+      # Playwright browser downloads (chrome-headless-shell etc.) - persist so
+      # they survive container recreation instead of re-downloading ~300MB.
+      - agent-cache:/home/agent/.cache
       # Optional: mount a local project for agents to work on in place (otherwise
       # the daemon clones repos itself into multica_workspaces per task).
       # - ./your-project:/app
@@ -45,9 +48,18 @@ services:
       - /dev/kvm
     group_add:
       - "104"        # host kvm gid (matches /dev/kvm root:104 on nevis)
+    # Lets Chromium's own sandbox and bwrap create unprivileged user/mount
+    # namespaces (unshare/clone/setns/mount). Docker's default seccomp
+    # profile already allows these syscalls conditionally on this exact
+    # capability, so no custom seccomp profile is needed. Broad grant —
+    # scoped to this container only, which already runs arbitrary
+    # agent-driven code under the pids/mem limits above.
+    cap_add:
+      - SYS_ADMIN
 
 volumes:
   multica-state:
   multica-workspaces:
   agent-config:
   mise-cache:
+  agent-cache:
