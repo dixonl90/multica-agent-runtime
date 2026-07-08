@@ -12,6 +12,7 @@ Stack-agnostic by design: it ships the agent CLIs and the `multica` daemon, but
 
 - **Agent CLIs**: Claude Code, OpenAI Codex, OpenCode, Antigravity (`agy`), Hermes (`hermes`), Pi (`pi`), OpenClaw (`openclaw`)
 - **`multica`** daemon + CLI
+- **Chromium** for browser-driven automation inside the runtime
 - **git** + host CLIs for **GitHub** (`gh`), **GitLab** (`glab`) and
   **Gitea/Forgejo** (`tea`), with token-based HTTPS auth wired up
 - **[mise](https://mise.jdx.dev/)** — language-agnostic version manager for per-project toolchains
@@ -21,7 +22,7 @@ Base image `node:20-bookworm` (pinned by digest). Runs as a non-root `agent` use
 
 ## Quickstart
 
-A pre-built multi-platform image (`linux/amd64`, `linux/arm64`) is published to
+A pre-built `linux/amd64` image is published to
 the GitHub Container Registry on every push to `main` and on every version tag:
 
 ```bash
