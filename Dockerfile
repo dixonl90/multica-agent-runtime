@@ -125,6 +125,15 @@ USER root
 RUN ln -sf "$HOME/.local/bin/agy" /usr/local/bin/agy
 USER agent
 
+# Stable Chrome wrappers - resolve whichever Playwright chromium /
+# chrome-headless-shell revision is installed under PLAYWRIGHT_BROWSERS_PATH
+# (see bin/chrome, bin/chrome-headless-shell), so agents do not need to track
+# the pinned build number 'playwright install chromium' downloads.
+COPY --chown=agent:agent bin/chrome bin/chrome-headless-shell /usr/local/bin/
+USER root
+RUN chmod +x /usr/local/bin/chrome /usr/local/bin/chrome-headless-shell
+USER agent
+
 # OpenCode provider config (DeepSeek example; the API key is supplied at runtime
 # via $DEEPSEEK_API_KEY and never baked in). Edit opencode.json to add providers.
 COPY --chown=agent:agent opencode.json /home/agent/.config/opencode/opencode.json

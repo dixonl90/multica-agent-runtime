@@ -1,0 +1,15 @@
+#!/bin/sh
+# Stable wrapper around Playwright's bundled Chrome, whatever revision is
+# currently installed under PLAYWRIGHT_BROWSERS_PATH (default
+# ~/.cache/ms-playwright). Resolves the path at call time via version-sorted
+# glob, so it keeps working across `playwright install chromium` upgrades
+# without needing to be regenerated.
+set -e
+BROWSERS_PATH="${PLAYWRIGHT_BROWSERS_PATH:-$HOME/.cache/ms-playwright}"
+BIN=$(ls -d "$BROWSERS_PATH"/chromium-*/chrome-linux64/chrome 2>/dev/null | sort -V | tail -1)
+if [ -z "$BIN" ] || [ ! -x "$BIN" ]; then
+  echo "chrome: no Playwright chromium build found under $BROWSERS_PATH" >&2
+  echo "        run: playwright install chromium" >&2
+  exit 1
+fi
+exec "$BIN" "$@"
