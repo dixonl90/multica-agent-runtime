@@ -96,7 +96,7 @@ RUN npm install -g \
     @anthropic-ai/claude-code@2.1.204 \
     @openai/codex@0.142.5 \
     opencode-ai@1.17.15 \
-    hermes-agent@0.18.0 \
+    hermes-agent@0.18.2 \
     @earendil-works/pi-coding-agent@0.80.3 \
     openclaw@2026.6.11 \
     add-mcp@1.14.0 \
