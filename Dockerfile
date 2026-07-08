@@ -71,8 +71,8 @@ RUN curl -fsSL "https://github.com/mikefarah/yq/releases/download/${YQ_VERSION}/
       -o /usr/local/bin/yq && chmod +x /usr/local/bin/yq
 
 # ── Non-root user ─────────────────────────────────────────────────────────
-RUN groupadd -r -g 999 agent && \
-    useradd -r -u 999 -g agent -m -s /bin/bash agent && \
+RUN groupadd -g 10001 agent && \
+    useradd -u 10001 -g agent -m -s /bin/bash agent && \
     mkdir -p /home/agent/.local/bin \
              /home/agent/.local/share/mise \
              /home/agent/.local/state/mise \
