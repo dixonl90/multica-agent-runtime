@@ -25,6 +25,7 @@ RUN apt-get update && apt-get install -y --no-install-recommends \
     git \
     python3-pip \
     ripgrep \
+    tini \
     unzip \
     xz-utils \
     zip \
@@ -155,4 +156,4 @@ ENV AGENT_CONFIG_DIR=/home/agent/.agent-config \
 
 ENV MULTICA_AGENT_RUNTIME_NAME=multica-agent-runtime
 WORKDIR /home/agent
-ENTRYPOINT ["/entrypoint.sh"]
+ENTRYPOINT ["/usr/bin/tini", "--", "/entrypoint.sh"]
