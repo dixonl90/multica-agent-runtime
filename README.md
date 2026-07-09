@@ -13,6 +13,7 @@ Stack-agnostic by design: it ships the agent CLIs and the `multica` daemon, but
 - **Agent CLIs**: Claude Code, OpenAI Codex, OpenCode, Antigravity (`agy`), Hermes (`hermes`), Pi (`pi`), OpenClaw (`openclaw`)
 - **`multica`** daemon + CLI
 - **Chromium** for browser-driven automation inside the runtime
+- **`tini`** as PID 1 so orphaned child processes are reaped and signals propagate cleanly
 - **git** + host CLIs for **GitHub** (`gh`), **GitLab** (`glab`) and
   **Gitea/Forgejo** (`tea`), with token-based HTTPS auth wired up
 - **[mise](https://mise.jdx.dev/)** — language-agnostic version manager for per-project toolchains
@@ -110,6 +111,10 @@ pull/merge requests:
 Gitea fork and speaks the same API, so it uses `GITEA_TOKEN` / `GITEA_HOST` and the
 `tea` CLI. You can set tokens for several hosts at once. See
 [`.env.example`](.env.example) for the exact token scopes.
+
+### Process reaping
+
+The container now runs under [`tini`](https://github.com/krallin/tini) as PID 1. That matters for long-lived agent runs: if a toolchain crashes after spawning workers, those orphaned children get adopted and reaped by `tini` instead of accumulating as zombies under the `multica` daemon. It also improves signal forwarding during `docker stop` and similar shutdown paths.
 
 ### Codex sandbox fallback
 
