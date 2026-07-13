@@ -27,18 +27,28 @@ for env_file in /app/.env /.env /run/secrets/multica.env; do
 done
 
 # Codex prefers to sandbox shell commands with bubblewrap. Some container hosts
-# still block the required privilege changes even when /usr/bin/bwrap is setuid,
-# which makes Codex fail before it can do useful work. Probe bwrap once at
-# startup and fall back to Codex's explicit no-sandbox mode only when the probe
-# fails.
+# still block the required privilege changes even when /usr/bin/bwrap is setuid
+# (e.g. `capset failed: Operation not permitted`, `Failed to make / slave:
+# Permission denied`), which makes Codex fail before it can do useful work.
+# Probe bwrap once at startup and, only when the probe fails, pin Codex's
+# sandbox_mode to danger-full-access via its config.toml — the outer container
+# is already the sandbox boundary in that case, so Codex's own nested sandbox
+# is both redundant and broken. Skipped if the user already set sandbox_mode
+# themselves (e.g. via a persisted CODEX_HOME volume).
+codex_bwrap_ok=1
 if command -v bwrap >/dev/null 2>&1; then
-  if ! bwrap --ro-bind / / --proc /proc --dev /dev /bin/true >/dev/null 2>&1; then
-    export CODEX_UNSAFE_ALLOW_NO_SANDBOX=1
-    echo "warning: bubblewrap is unavailable in this container; falling back to no-sandbox Codex mode" >&2
-  fi
+  bwrap --ro-bind / / --proc /proc --dev /dev /bin/true >/dev/null 2>&1 || codex_bwrap_ok=0
 else
-  export CODEX_UNSAFE_ALLOW_NO_SANDBOX=1
-  echo "warning: bubblewrap is not installed; falling back to no-sandbox Codex mode" >&2
+  codex_bwrap_ok=0
+fi
+if [ "$codex_bwrap_ok" = 0 ]; then
+  codex_config="${CODEX_HOME:-$HOME/.codex}/config.toml"
+  mkdir -p "$(dirname "$codex_config")"
+  touch "$codex_config"
+  if [ "$(yq '.sandbox_mode // ""' -p toml -o toml "$codex_config")" = "" ]; then
+    yq -i '.sandbox_mode = "danger-full-access"' -p toml -o toml "$codex_config"
+    echo "warning: bubblewrap sandboxing is unavailable in this container; set Codex sandbox_mode=danger-full-access in $codex_config" >&2
+  fi
 fi
 
 # Configure git HTTPS auth + the host CLIs so the daemon (and agents) can
