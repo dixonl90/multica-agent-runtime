@@ -96,7 +96,7 @@ ENV HOME=/home/agent
 ENV PIP_BREAK_SYSTEM_PACKAGES=1
 RUN npm install -g \
     @anthropic-ai/claude-code@2.1.207 \
-    @openai/codex@0.144.3 \
+    @openai/codex@0.145.0 \
     opencode-ai@1.17.18 \
     hermes-agent@0.18.2 \
     @earendil-works/pi-coding-agent@0.80.6 \
