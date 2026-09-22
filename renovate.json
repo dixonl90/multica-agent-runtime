@@ -1,15 +1,9 @@
 {
   "$schema": "https://docs.renovatebot.com/renovate-schema.json",
   "extends": ["config:recommended"],
-  "packageRules": [
-    {
-      "matchManagers": ["custom.regex",  "dockerfile"],
-      "matchUpdateTypes": ["minor", "patch"],
-      "automerge": true,
-      "automergeType": "pr",
-      "automergeStrategy": "squash"
-    }
-  ],
+  "automerge": true,
+  "automergeType": "pr",
+  "automergeStrategy": "squash",
   "customManagers": [
     {
       "customType": "regex",
