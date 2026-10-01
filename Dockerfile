@@ -97,7 +97,7 @@ ENV PIP_BREAK_SYSTEM_PACKAGES=1
 RUN npm install -g \
     @anthropic-ai/claude-code@2.1.287 \
     @openai/codex@0.159.3 \
-    opencode-ai@1.18.33 \
+    opencode-ai@1.18.34 \
     hermes-agent@0.21.5 \
     @earendil-works/pi-coding-agent@0.99.2 \
     openclaw@2026.9.7 \
