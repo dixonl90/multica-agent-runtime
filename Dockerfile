@@ -100,7 +100,7 @@ RUN npm install -g \
     opencode-ai@1.19.1 \
     hermes-agent@0.22.2 \
     @earendil-works/pi-coding-agent@1.2.0 \
-    openclaw@2026.10.3 \
+    openclaw@2026.10.4 \
     add-mcp@2.4.1 \
     && chown -R agent:agent /home/agent
 
