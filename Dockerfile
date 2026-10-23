@@ -101,7 +101,7 @@ RUN npm install -g \
     hermes-agent@0.22.5 \
     @earendil-works/pi-coding-agent@1.4.0 \
     openclaw@2026.10.6 \
-    add-mcp@2.4.1 \
+    add-mcp@2.6.0 \
     && chown -R agent:agent /home/agent
 
 # ── Everything below runs as the non-root agent user ──────────────────────
