@@ -33,8 +33,10 @@ done
 # Probe bwrap once at startup and, only when the probe fails, pin Codex's
 # sandbox_mode to danger-full-access via its config.toml — the outer container
 # is already the sandbox boundary in that case, so Codex's own nested sandbox
-# is both redundant and broken. Skipped if the user already set sandbox_mode
-# themselves (e.g. via a persisted CODEX_HOME volume).
+# is both redundant and broken. Always overwritten (not just set-if-absent)
+# when the probe fails: CODEX_HOME is a persisted volume across container
+# recreations, so a stale sandbox_mode from before bwrap broke (or Codex's own
+# workspace-write default) would otherwise survive a rebuild and stay broken.
 codex_bwrap_ok=1
 if command -v bwrap >/dev/null 2>&1; then
   bwrap --ro-bind / / --proc /proc --dev /dev /bin/true >/dev/null 2>&1 || codex_bwrap_ok=0
@@ -45,7 +47,7 @@ if [ "$codex_bwrap_ok" = 0 ]; then
   codex_config="${CODEX_HOME:-$HOME/.codex}/config.toml"
   mkdir -p "$(dirname "$codex_config")"
   touch "$codex_config"
-  if [ "$(yq '.sandbox_mode // ""' -p toml -o toml "$codex_config")" = "" ]; then
+  if [ "$(yq '.sandbox_mode // ""' -p toml -o toml "$codex_config")" != "danger-full-access" ]; then
     yq -i '.sandbox_mode = "danger-full-access"' -p toml -o toml "$codex_config"
     echo "warning: bubblewrap sandboxing is unavailable in this container; set Codex sandbox_mode=danger-full-access in $codex_config" >&2
   fi
